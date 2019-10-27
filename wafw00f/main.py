@@ -31,7 +31,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import os
-
+import logging
+import sys, re
+import random, io
 try:
     import httplib
 except ImportError:
@@ -41,9 +43,20 @@ try:
 except ImportError:
     from urllib.parse import quote, unquote
 from optparse import OptionParser
-import logging
-import sys
-import random
+
+# Colors for terminal
+W = '\033[1;97m'
+Y = '\033[1;93m'
+G = '\033[1;92m'
+R = '\033[1;91m'
+B = '\033[1;94m'
+C = '\033[1;96m'
+E = '\033[0m'
+
+# Windows based systems do not support ANSI sequences,
+# hence not displaying them.
+if 'win' in sys.platform:
+    W = Y = G = R = B = C = E = ''
 
 currentDir = os.getcwd()
 scriptDir = os.path.dirname(sys.argv[0]) or '.'
@@ -54,32 +67,30 @@ from wafw00f.lib.evillib import oururlparse, scrambledheader, waftoolsengine
 from wafw00f.manager import load_plugins
 from wafw00f.wafprio import wafdetectionsprio
 
-lackofart = r'''
-                                 ^     ^
-        _   __  _   ____ _   __  _    _   ____
-       ///7/ /.' \ / __////7/ /,' \ ,' \ / __/
-      | V V // o // _/ | V V // 0 // 0 // _/
-      |_n_,'/_n_//_/   |_n_,' \_,' \_,'/_/
-                                <
-                                ...'
+# Phew! WAF says a Woof! You know who's the good boy. :)
+woof = '''
+                 '''+W+'''______
+                '''+W+'''/      \\
+               '''+W+'''(  Woof! )
+                '''+W+'''\______/                      '''+R+''')
+                '''+W+''',,                           '''+R+''') ('''+Y+'''_
+           '''+Y+'''.-. '''+W+'''-    '''+G+'''_______                 '''+R+'''( '''+Y+'''|__|
+          '''+Y+'''()``; '''+G+'''|==|_______)                '''+R+'''.)'''+Y+'''|__|
+          '''+Y+'''/ ('        '''+G+'''/|\                  '''+R+'''(  '''+Y+'''|__|
+      '''+Y+'''(  /  )       '''+G+''' / | \                  '''+R+'''. '''+Y+'''|__|
+       '''+Y+'''\(_)_))      '''+G+'''/  |  \                   '''+Y+'''|__|'''+E+'''
 
     WAFW00F - Web Application Firewall Detection Tool
-
-    By Sandro Gauci && Wendel G. Henrique
-'''
-
+    '''
 
 class WafW00F(waftoolsengine):
-    """
-    WAF detection tool
-    """
 
     AdminFolder = '/Admin_Files/'
     xssstring = '<script>alert(1)</script>'
     dirtravstring = '../../../../etc/passwd'
     cleanhtmlstring = '<invalid>hello'
 
-    def __init__(self, target='www.microsoft.com', port=80, ssl=False,
+    def __init__(self, target='www.example.com', port=80, ssl=False,
                  debuglevel=0, path='/', followredirect=True, extraheaders={}, proxy=False):
         """
         target: the hostname or ip of the target server
@@ -124,8 +135,8 @@ class WafW00F(waftoolsengine):
         return self.request(path=pfstring, usecache=usecache, cacheresponse=cacheresponse)
 
     def xssstandardencoded(self, usecache=True, cacheresponse=True):
-        xssstringa = self.path + quote(self.xssstring) + '.html'
-        return self.request(path=xssstringa, usecache=usecache, cacheresponse=cacheresponse)
+        xssstringb = self.path + quote(self.xssstring) + '.html'
+        return self.request(path=xssstringb, usecache=usecache, cacheresponse=cacheresponse)
 
     attacks = [xssstandard, directorytraversal, protectedfolder, xssstandardencoded]
 
@@ -233,11 +244,11 @@ class WafW00F(waftoolsengine):
                     headervals = [headerval]
                 for headerval in headervals:
                     if ignorecase:
-                        if re.match(match, headerval, re.IGNORECASE):
+                        if re.search(match, headerval, re.IGNORECASE):
                             detected = True
                             break
                     else:
-                        if re.match(match, headerval):
+                        if re.search(match, headerval):
                             detected = True
                             break
                 if detected:
@@ -288,7 +299,7 @@ def getheaders(fn):
     if not os.path.exists(fullfn):
         logging.getLogger('wafw00f').critical('Headers file "%s" does not exist!' % fullfn)
         return
-    with open(fn, 'r') as f:
+    with io.open(fn, 'r', encoding='utf-8') as f:
         for line in f.readlines():
             _t = line.split(':', 2)
             if len(_t) == 2:
@@ -298,7 +309,7 @@ def getheaders(fn):
 
 
 def main():
-    print(lackofart)
+    print(woof)
     parser = OptionParser(usage='%prog url1 [url2 [url3 ... ]]\r\nexample: %prog http://www.victim.org/')
     parser.add_option('-v', '--verbose', action='count', dest='verbose', default=0,
                       help='enable verbosity - multiple -v options increase verbosity')
@@ -355,12 +366,12 @@ def main():
                            proxy=options.proxy)
         if attacker.normalrequest() is None:
             log.error('Site %s appears to be down' % target)
-            sys.exit(1)
+            continue
         if options.test:
             if options.test in attacker.wafdetections:
                 waf = attacker.wafdetections[options.test](attacker)
                 if waf:
-                    print('The site %s is behind %s' % (target, options.test))
+                    print('The site %s is behind %s WAF.' % (target, options.test))
                 else:
                     print('WAF %s was not detected on %s' % (options.test, target))
             else:
@@ -370,7 +381,7 @@ def main():
         waf = attacker.identwaf(options.findall)
         log.info('Ident WAF: %s' % waf)
         if len(waf) > 0:
-            print('The site %s is behind %s' % (target, ' and/or '.join(waf)))
+            print('The site %s is behind %s WAF.' % (target, ' and/or '.join(waf)))
         if (options.findall) or len(waf) == 0:
             print('Generic Detection results:')
             if attacker.genericdetect():
