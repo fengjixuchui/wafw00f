@@ -28,12 +28,12 @@ class WAFW00F(waftoolsengine):
     rcestring = '/bin/cat /etc/passwd; ping 127.0.0.1; curl google.com'
     xxestring = '<!ENTITY xxe SYSTEM "file:///etc/shadow">]><pwn>&hack;</pwn>'
 
-    def __init__(self, target='www.example.com', port=None, debuglevel=0, path='/',
+    def __init__(self, target='www.example.com', debuglevel=0, path='/',
                  followredirect=True, extraheaders={}, proxies=None):
 
         self.log = logging.getLogger('wafw00f')
         self.attackres = None
-        waftoolsengine.__init__(self, target, port, debuglevel, path, proxies, followredirect, extraheaders)
+        waftoolsengine.__init__(self, target, debuglevel, path, proxies, followredirect, extraheaders)
         self.knowledge = dict(generic=dict(found=False, reason=''), wafname=list())
 
     def normalRequest(self):
@@ -269,6 +269,9 @@ def getTextResults(res=None):
     for dk in res:
         p = [str(x) for _, x in dk.items()]
         rows.append(p)
+    for m in rows:
+        m[1] = f'{m[1]} ({m[2]})'
+        m.pop()
     defgen = [
         (max([len(str(row[i])) for row in rows]) + 3)
         for i in range(len(rows[0]))
@@ -287,9 +290,8 @@ def enableStdOut():
 
 def getheaders(fn):
     headers = {}
-    fullfn = os.path.abspath(os.path.join(os.getcwd(), fn))
-    if not os.path.exists(fullfn):
-        logging.getLogger('wafw00f').critical('Headers file "%s" does not exist!' % fullfn)
+    if not os.path.exists(fn):
+        logging.getLogger('wafw00f').critical('Headers file "%s" does not exist!' % fn)
         return
     with io.open(fn, 'r', encoding='utf-8') as f:
         for line in f.readlines():
@@ -334,14 +336,19 @@ def main():
         attacker = WAFW00F(None)
         try:
             m = [i.replace(')', '').split(' (') for i in wafdetectionsprio]
-            print(R+'  WAF Name'+'\t'*3+'Manufacturer\n  '+'-'*8+'\t'*3+'-'*12+E+'\n')
-            for i in m:
-                tab, n = '\t', 5
-                for j in range(-2,23,8):
-                    if len(i[0]) < j:
-                        print('  '+Y+i[0]+E+tab*n+W+i[1]+E)
-                        break
-                    else: n=n-1
+            print(R+'  WAF Name'+' '*24+'Manufacturer\n  '+'-'*8+' '*24+'-'*12+'\n')
+            max_len = max(len(str(x)) for k in m for x in k) 
+            for inner in m:
+                first = True
+                for elem in inner:
+                    if first:
+                        text = Y+"  {:<{}} ".format(elem, max_len+2)
+                        first = False
+                    else:
+                        text = W+"{:<{}} ".format(elem, max_len+2)
+                    print(text, E, end="")
+                print()
+            sys.exit(0)
         except Exception:
             return
     if options.version:
@@ -389,7 +396,7 @@ def main():
     for target in targets:
         if not target.startswith('http'):
             log.info('The url %s should start with http:// or https:// .. fixing (might make this unusable)' % target)
-            target = 'http://' + target
+            target = 'https://' + target
         print('[*] Checking %s' % target)
         pret = urlParser(target)
         if pret is None:
@@ -403,7 +410,7 @@ def main():
                 "http": options.proxy,
                 "https": options.proxy,
             }
-        attacker = WAFW00F(target, port=port, debuglevel=options.verbose, path=path,
+        attacker = WAFW00F(target, debuglevel=options.verbose, path=path,
                     followredirect=options.followredirect, extraheaders=extraheaders,
                         proxies=proxies)
         global rq
