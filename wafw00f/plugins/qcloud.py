@@ -4,14 +4,14 @@ Copyright (C) 2020, WAFW00F Developers.
 See the LICENSE file for copying permission.
 '''
 
-NAME = 'PT Application Firewall (Positive Technologies)'
+NAME = 'Qcloud (Tencent Cloud)'
 
 
 def is_waf(self):
     schemes = [
-        self.matchContent(r'<h1.{0,10}?Forbidden'),
-        self.matchContent(r'<pre>Request.ID:.{0,10}?\d{4}\-(\d{2})+.{0,35}?pre>')
-    ]
+        self.matchContent(r'腾讯云Web应用防火墙'),
+        self.matchStatus(403)
+        ]
     if all(i for i in schemes):
         return True
     return False

@@ -15,7 +15,7 @@
     <img src="https://img.shields.io/badge/Python-3.x/2.x-green.svg">
   </a>
   <a href="https://github.com/EnableSecurity/wafw00f/releases">
-    <img src="https://img.shields.io/badge/Version-v2.0.0%20(stable)-blue.svg">
+    <img src="https://img.shields.io/badge/Version-v2.1.0%20(stable)-blue.svg">
   </a>
   <a href="https://github.com/EnableSecurity/wafw00f/blob/master/LICENSE">
     <img src="https://img.shields.io/badge/License-BSD%203%20Clause-orange.svg">
@@ -159,6 +159,7 @@ $ wafw00f -l
   PowerCDN                         PowerCDN                         
   Profense                         ArmorLogic                       
   Puhui                            Puhui                            
+  Qcloud                           Tencent Cloud                    
   Qiniu                            Qiniu CDN                        
   Reblaze                          Reblaze                          
   RSFirewall                       RSJoomla!                        
@@ -215,8 +216,7 @@ $ wafw00f -l
   Yunjiasu                         Baidu Cloud Computing            
   YXLink                           YxLink Technologies              
   Zenedge                          Zenedge                          
-  ZScaler                          Accenture                        
-  e3Learning Firewall  
+  ZScaler                          Accenture
 ```
 
 ## How do I use it?
